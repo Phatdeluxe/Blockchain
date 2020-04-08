@@ -12,7 +12,7 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-        # self.proofs = []
+        self.proofs = []
 
         # Create the genesis block
         self.new_block(previous_hash=1, proof=100)
@@ -153,7 +153,7 @@ def mine():
         if test_valid == True:
             if data['proof'] not in blockchain.proofs:
                 block = blockchain.new_block(data['proof'], previous_hash)
-                # blockchain.proofs.append(data['proof'])
+                blockchain.proofs.append(data['proof'])
                 response = {
                     'message': "New Block Forged",
                     'index': block['index'],
