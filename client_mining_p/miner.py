@@ -35,8 +35,8 @@ def valid_proof(block_string, proof):
     guess = f"{block_string}{proof}".encode()
     guess_hash = hashlib.sha256(guess).hexdigest()
     # print(guess_hash)
-    return guess_hash[:3] == "000"
-    # return guess_hash[:6] == "000000"
+    # return guess_hash[:3] == "000"
+    return guess_hash[:6] == "000000"
 
 
 if __name__ == '__main__':
@@ -47,43 +47,79 @@ if __name__ == '__main__':
         node = "http://localhost:5000"
 
     # Load ID
-    f = open("my_id.txt", "r")
-    id = f.read()
-    print("ID is", id)
-    f.close()
-
-    proof_counter = 0
-    coins_mined = 0
-    # Run forever until interrupted
+    username = input('Please input an ID:')
+    # f = open("my_id.txt", "r")
+    # username = f.read()
+    # print("ID is", username)
+    # f.close()
+    id_list = [username,]
+    
+    print('Commands:\n"mine": mine one coin\n"balance": display current balance\n"transactions": Display the list of all your transactions\n"id": Change your ID\n"q": Close miner')
     while True:
-        r = requests.get(url=node + "/last_block")
-        # Handle non-json response
-        try:
+        cmd = input('->')
+        if cmd == 'mine':
+            pass
+        elif cmd == 'balance':
+            balance = 0
+            r = requests.get(url=node + "/chain")
             data = r.json()
-        except ValueError:
-            print("Error:  Non-json response")
-            print("Response returned:")
-            print(r)
+            for block in data['chain']:
+                for transaction in block['transactions']:
+                    if transaction['recipient'] in id_list:
+                        balance += 1
+            print(f'Current balance: {balance} coins')
+            continue
+        elif cmd == 'transactions':
+            r = requests.get(url=node + '/chain')
+            data = r.json()
+            for block in data['chain']:
+                for transaction in block['transactions']:
+                    if transaction['recipient'] in id_list or transaction['sender'] in id_list:
+                        print(transaction)
+            continue
+        elif cmd == 'id':
+            username = input('Please choose a new id \n->')
+            id_list.append(username)
+            continue
+        elif cmd == 'q':
             break
-
-        # TODO: Get the block from `data` and use it to look for a new proof
-        block = data['block']
-        new_proof = proof_of_work(block)
-        proof_counter = new_proof
-        # print(new_proof)
-
-        # When found, POST it to the server {"proof": new_proof, "id": id}
-        post_data = {"proof": new_proof, "id": id}
-
-
-        r = requests.post(url=node + "/mine", json=post_data)
-        data = r.json()
-
-        # TODO: If the server responds with a 'message' 'New Block Forged'
-        if data['message'] == "New Block Forged":
-            coins_mined += 1
-            print(f'Coins mined: {coins_mined}')
         else:
-            print(data['message'])
-        # add 1 to the number of coins mined and print it.  Otherwise,
-        # print the message from the server.
+            print(f'{cmd} is not a valid command')
+            continue
+        proof_counter = 0
+        coins_mined = 0
+        # Run forever until interrupted
+        while True:
+            r = requests.get(url=node + "/last_block")
+            # Handle non-json response
+            try:
+                data = r.json()
+            except ValueError:
+                print("Error:  Non-json response")
+                print("Response returned:")
+                print(r)
+                break
+
+            # TODO: Get the block from `data` and use it to look for a new proof
+            block = data['block']
+            new_proof = proof_of_work(block)
+            proof_counter = new_proof
+            # print(new_proof)
+
+            # When found, POST it to the server {"proof": new_proof, "id": id}
+            post_data = {"proof": new_proof, "id": username}
+
+
+            r = requests.post(url=node + "/mine", json=post_data)
+            data = r.json()
+
+            # TODO: If the server responds with a 'message' 'New Block Forged'
+            if data['message'] == "New Block Forged":
+                coins_mined += 1
+                print(f'Coins mined: {coins_mined}')
+                break
+            else:
+                print(data['message'])
+                break
+            # add 1 to the number of coins mined and print it.  Otherwise,
+            # print the message from the server.
